@@ -1,0 +1,5 @@
+2016-12-20T19:01:16Z, Server B started.
+2016-12-20T19:03:25Z, Server B completed job.
+2016-12-20 19:03:26:000, Invalid line, invalid timestamp
+, Invalid line, no timestamp.
+2016-12-20T19:04:50Z, Server B terminated.
