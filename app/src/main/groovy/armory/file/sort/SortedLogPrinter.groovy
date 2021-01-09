@@ -4,7 +4,6 @@ import groovy.io.FileType
 class SortedLogPrinter {
     private String dirName, fileNamePattern
     private PriorityQueue filesToPrint = new PriorityQueue<File>({a, b -> a.size() <=> b.size()})
-    private List newFiles = []
     private int newFileCount = 0
     SortedLogPrinter(String dirName, String fileNamePattern){
         this.dirName = dirName
@@ -44,39 +43,10 @@ class SortedLogPrinter {
      * Process files by combining two at a time and storing the new files. Continue until one file with all lines remains.
      */
     void combineFiles(){
-        boolean processingComplete = false
-        while(!processingComplete) {
-            //We made a complete pass over the directory
-            //swap the files to process with the set that were processed
-            if(filesToPrint.size() == 0) {
-                reload()
-            }
-            if(filesToPrint.size() == 1) {
-                //if 1 file to process and zero files processed, we are done
-                if (newFiles.size() == 0) {
-                    processingComplete = true;
-                    continue;
-                }
-                //Otherwise, there's nothing to combine this with, so push it to the newFiles list so it
-                //can be combine on the next pass
-                newFiles << filesToPrint.poll()
-                reload()
-                continue;
-            }
+        while(filesToPrint.size() > 1) {
             //if 2+ files to process, combine them into a new file
-            newFiles.push(combineFiles(filesToPrint.poll(),filesToPrint.poll()))
+            filesToPrint.add(combineFiles(filesToPrint.poll(),filesToPrint.poll()))
          }
-    }
-
-    /**
-     * Swap filesToCombine and processedFiles so that we can make another pass over the now smaller file set.
-     *
-     * TODO - We can constantly leverage priority queue, ensuring we actually always handle the smallest two files
-     * TODO - even as the new files are being written, but just placing them into the queue. We don't need a second list.
-     */
-    void reload(){
-        filesToPrint.addAll(newFiles)
-        newFiles = [] //there may be a cleaner way to do than letting garbage collection take care of it
     }
 
     /**
