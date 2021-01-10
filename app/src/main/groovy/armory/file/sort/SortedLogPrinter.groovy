@@ -18,9 +18,10 @@ class SortedLogPrinter {
      * Sort all lines among files in a directory and print the result
      * @param dirName
      */
-    void execute() {
+    SortedLogPrinter execute() {
         readFilesFromDir()
         combineFiles()
+        return this
     }
 
     /**
@@ -102,6 +103,28 @@ class SortedLogPrinter {
         //TODO - We may want to delete the processed files if we don't have reason to keep them, especially the newly generated ones
 
         return newFile
+    }
+
+    /**
+     *
+     */
+    void printResult(){
+        if(filesToPrint.size() == 0){
+            println "It looks like we didn't find any files. Did you provide the correct directory?"
+        }
+
+        if(filesToPrint.size() > 1){
+            println "Your files are being combined. Please wait."
+            return
+        }
+
+        filesToPrint.poll().withReader {buffer ->
+            String line
+            while(line = buffer.readLine()){
+                println line
+            }
+        }
+        println "File processing complete. Please enjoy your sorted log statements!"
     }
 
     /**

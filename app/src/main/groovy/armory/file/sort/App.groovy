@@ -6,5 +6,7 @@ class App {
                 'src/test/resources',
                 /(server-)\w+\.log/)
                 .execute()
+                .printResult()
+
     }
 }
