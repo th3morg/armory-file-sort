@@ -1,15 +1,19 @@
 package armory.file.sort
 import groovy.io.FileType
+import java.text.SimpleDateFormat
 
 class SortedLogPrinter {
+    private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private String dirName, fileNamePattern
     private PriorityQueue filesToPrint = new PriorityQueue<File>({a, b -> a.size() <=> b.size()})
     private int newFileCount = 0
+
     SortedLogPrinter(String dirName, String fileNamePattern){
         this.dirName = dirName
         this.fileNamePattern = fileNamePattern
 
     }
+
     /**
      * Sort all lines among files in a directory and print the result
      * @param dirName
@@ -51,19 +55,61 @@ class SortedLogPrinter {
 
     /**
      * Combine two files line by line ensuring they remain in order by timestamp
+     * TODO - Error handling.
      */
     File combineFiles(File left, File right){
-        //TODO - Remove println
+        //TODO - Remove println, leaving in tact for illustration of successful ordering
         println "Combining ${left.name} and ${right.name}"
+        File newFile = new File("${left.getParent()}/processed-${++newFileCount}.log")
+        String leftLine, rightLine
         //open the left file with buffer
-        //open the right file with buffer
-        //create a new file with buffered output
-        //read line from left and from right and parse dates from each (handling error conditions)
-        //compare dates of the two lines
-        //if there is no curr line for left or right, write the available line
-        //note: it could be slightly more optimal to detect the above case and execute separate loop taking the lines without an if check
-        //write the earlier occurring line to the new file and read the next line of that file
+        left.withReader {leftBuffer  ->
+            //short circuit if left file is empty
+             if(!(leftLine = leftBuffer.readLine())){
+                 return right;
+             }
+            //open the right file with buffer
+            right.withReader {rightBuffer ->
+                //short circuit if right file is empty
+                if(!(rightLine = rightBuffer.readLine())){
+                    return left;
+                }
+                //since neither file is empty, create a new file with buffered output
+                newFile.withWriter {newBuffer ->
+                    // TODO - Could we use a PriorityQueue here to simplify this?
+                    Date leftDate = parseISO8691FileDate(leftLine), rightDate = parseISO8691FileDate(rightLine)
+                    boolean rightComplete = false, leftComplete = false
+                    while(!(rightComplete && leftComplete)){
+                        if(!leftComplete && (leftDate <= rightDate || rightComplete)){
+                            newBuffer.writeLine(leftLine)
+                            if(!(leftLine = leftBuffer.readLine())){
+                                leftComplete = true;
+                            } else {
+                                leftDate = parseISO8691FileDate(leftLine)
+                            }
+                        } else {
+                            newBuffer.writeLine(rightLine)
+                            if(!(rightLine = rightBuffer.readLine())){
+                                rightComplete = true;
+                            } else {
+                                rightDate = parseISO8691FileDate(rightLine)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        //TODO - We may want to delete the processed files if we don't have reason to keep them, especially the newly generated ones
 
-        return new File("${left.getParent()}/processed-${++newFileCount}.log")
+        return newFile
+    }
+
+    /**
+     * Parse ISO 8691 Date Format 'yyyy-MM-ddTHH:mm:ssZ'
+     * @param line
+     * @return parsed Date
+     */
+    Date parseISO8691FileDate(String line){
+        return simpleDateFormat.parse(line.substring(0, line.indexOf("Z")).replace('T', ' '))
     }
 }
